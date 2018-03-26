@@ -9,7 +9,32 @@ use super::commands;
 use command_prelude::*;
 
 pub fn main(config: &mut Config) -> CliResult {
-    let args = cli().get_matches_safe()?;
+    let unstable_features_help = "\
+Available unstable (nightly-only) flags.
+
+    avoid-dev-deps      Avoid installing dev-dependencies if possible
+    minimal-versions    Install minimal dependency versions instead of maximum
+    no-index-update     Do not update the registry, avoids a network request for benchmarking
+    offline             Offline mode that does not perform network requests
+    print-im-a-teapot   Example option for demonstration purposes
+    unstable-options    Allow the usage of unstable options such as --registry
+
+Run with 'cargo -Z [FLAG] [SUBCOMMAND]'";
+
+    let args = match cli().get_matches_safe() {
+        Ok(args) => args,
+        Err(ref e) if e.kind == clap::ErrorKind::HelpDisplayed => {
+            println!("{}", unstable_features_help);
+            return Ok(());
+        },
+        Err(e) => return Err(e.into())
+    };
+
+    if args.value_of("unstable-features") == Some("help") {
+        println!("{}", unstable_features_help);
+        return Ok(());
+    }
+
     let is_verbose = args.occurrences_of("verbose") > 0;
     if args.is_present("version") {
         let version = cargo::version();
